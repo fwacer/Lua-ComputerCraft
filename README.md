@@ -1,2 +1,2 @@
-# Lua-ComputerCraft
-Code for projects in Lua using the ComputerCraft mod for Minecraft
+# Lua-ComputerCraft-turtleControl
+Code for turtleControl in Lua using the ComputerCraft mod for Minecraft
