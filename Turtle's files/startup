@@ -1,0 +1,131 @@
+local function start()
+	term.clear()
+	term.setCursorPos(1,1)
+	local name = os.getComputerLabel()
+	local id = os.getComputerID()
+	local fuel = turtle.getFuelLevel()
+	print("I am the "..name.." turtle. (#"..id..")")
+	local percentage = (fuel/turtle.getFuelLimit())*100
+	print("I am "..percentage.."% fueled.")
+	while true do
+  write(">")
+  local input = read()
+  shell.run(input)
+	end
+end
+local function parse( message )
+  for i = 1, #message do
+     if string.sub( message, i, i ) == " " then
+       return string.sub( message, 1, i-1 ), string.sub( message, i + 1 )
+     end
+  end
+  return message
+end
+local function whereis()
+  rednet.open("left")
+  while true do
+	local x, y, z = gps.locate(5)
+    local id, msg = rednet.receive(os.getComputerLabel())
+	--start()
+	local call, cmd = parse(msg)
+    if call=="whereis" then
+      local x,y,z = gps.locate(5)
+      rednet.send(id, tostring(x.." "..y.." "..z))
+    elseif call=="direction" then
+		local function move()
+			if cmd=="attack" then
+				if not turtle.attack() then
+					if not turtle.attackUp() then
+						if not turtle.attackDown() then
+							return false
+						else
+							return true
+						end
+					else
+						return true
+					end
+				else
+					return true
+				end
+			elseif cmd=="dig" then
+				return turtle.dig()
+			elseif cmd=="place" then
+				return turtle.place()
+			elseif cmd=="up" then
+				if turtle.detectUp() then
+					if turtle.attackUp() then
+						return turtle.up()
+					elseif turtle.digUp() then
+						return turtle.up()
+					end
+				else
+					return turtle.up()
+				end
+			elseif cmd=="down" then
+				if turtle.detectDown() then
+					if turtle.attackDown() then
+						return turtle.down()
+					elseif turtle.digDown() then
+						return turtle.down()
+					end
+				else
+					return turtle.down()
+				end
+			elseif cmd=="left" then
+				return turtle.turnLeft()
+			elseif cmd=="right" then
+				return turtle.turnRight()
+			elseif cmd=="backward" then
+				return turtle.back()
+			elseif cmd=="forward" then
+				if turtle.attack() then
+					return turtle.forward()
+				elseif turtle.dig() then
+					return turtle.forward()
+				else
+					return turtle.forward()
+				end
+			end
+		end
+		write("Received Signal: "..cmd.." --- ")
+		local success = move()
+		rednet.send(id, success)
+		print(success)
+    elseif call=="getPrograms" then
+		local progList = {}
+		local function getPrograms(list, dir)
+			local l = list
+			for i=1, #l do
+				if l[i]~="rom" and type(list[i])~="table"then
+					if fs.isDir(dir.."/"..l[i]) then
+						local t = l[i]
+						local lDir
+						l[i] = {l[i], fs.list(dir.."/"..t)}
+						getPrograms(l[i], t)
+					end
+				end
+			end
+			return l
+		end
+		
+		progList = fs.list("")
+		progList = getPrograms(progList, "")
+		local msg = textutils.serialize(progList)
+		rednet.send(id, msg)
+	elseif call=="getFuel" then
+		local fuel = turtle.getFuelLevel()
+		rednet.send(id, tostring(fuel))
+	else
+		print("fail")
+	end
+  end
+end  
+  
+local function events()
+  while true do
+    os.pullEventRaw("Terminate")
+      print"Nope."
+      shell.run("clear")
+  end
+end 
+parallel.waitForAll(whereis, start, events)

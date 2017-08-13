@@ -1,0 +1,6 @@
+local mon = peripheral.wrap('top')
+	mon.restoreTo = term.current()
+	term.redirect(mon)
+	local x,y = term.getSize()
+term.redirect(mon.restoreTo)
+return x,y

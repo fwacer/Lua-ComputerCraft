@@ -1,0 +1,7 @@
+print[[
+							List of permission types:
+							"master" - Access to computer
+							"admin" - Access to user data
+							"user" - Access to menu
+							"guest" - Access to basics
+							]]

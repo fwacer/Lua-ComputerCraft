@@ -1,0 +1,19 @@
+local tArgs = {...}
+
+if #tArgs ~= 1 then
+  print("Usage: d <name>")
+  return
+end
+shell.run("monitor top draw",tArgs[1])
+local turtles = {"Green", "Purple", "Blue", "Grey", "Red", "Brown", "Orange", "White", "Lime", "Pink"}
+local mon = peripheral.wrap('top')
+mon.setCursorPos(1,7)
+for i=1, 10 do
+  turtle = turtles[i]
+  shell.run"printName"
+  shell.run"pointManager"
+end
+mon.setCursorPos(44,33)
+mon.setTextColor(colors.lime)
+mon.write("RETURN")
+mon.setTextColor(colors.white)

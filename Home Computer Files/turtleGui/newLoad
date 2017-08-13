@@ -1,0 +1,25 @@
+local running = true
+local function load()
+local mon = peripheral.wrap('top')
+while running do
+  for i=1,8 do
+    shell.run("cls")
+    mon.setCursorPos(18,13)
+    shell.run("monitor top draw loading/"..tostring(i))
+	mon.setCursorPos(16,22)
+	mon.write("Establishing Connection..")
+    sleep(0.45)
+  end
+  sleep(1)
+end
+end
+local function exit()
+  while true do
+    local input = read()
+    if input == "exit" then
+      running = false
+    end
+  end
+end
+load()
+--parallel.waitForAny(load, exit)

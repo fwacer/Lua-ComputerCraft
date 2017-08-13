@@ -1,0 +1,426 @@
+local xPos, yPos
+local mon = peripheral.wrap('top')
+local function touch()
+  local event, side
+  event, side, xPos, yPos = os.pullEvent("monitor_touch") --Gets the coordinates of where the player touched the screen
+end
+local function repaint()
+	shell.run("d turtles.png")
+end
+local function cls()
+	mon.setCursorPos(1,1)
+	mon.clear()
+	mon.setTextScale(1)
+	mon.setTextColor(colors.white)
+	mon.setBackgroundColor(colors.black)
+end
+local function getName(t)
+	local tName
+	if t==1 then
+		tName = "Green"
+	elseif t==2 then
+		tName = "Purple"
+	elseif t==3 then
+		tName = "Blue"
+	elseif t==4 then
+		tName = "Grey"
+	elseif t==5 then
+		tName = "Red"
+	elseif t==6 then
+		tName = "Brown"
+	elseif t==7 then
+		tName = "Orange"
+	elseif t==8 then
+		tName = "White"
+	elseif t==9 then
+		tName = "Lime"
+	elseif t==10 then
+		tName = "Pink"
+	end
+	return tName
+end
+local function command(cmd, sTurtle)
+	local function tCall()
+		
+	end
+	local function tRun()
+		
+	end
+	local function tPosition()
+		local id, xyz
+		rednet.open("left")
+		rednet.broadcast("whereis", sTurtle)
+		parallel.waitForAny(
+			function()
+				id, xyz = rednet.receive(4.8)
+			end,
+			function()
+				shell.run("newLoad")
+			end
+		)
+		cls()
+		mon.setTextScale(2)
+		mon.setCursorPos(1,5)
+		if not id then
+			local v = fs.exists(tostring("turtles/"..sTurtle..".txt"))
+			if v then
+				local h = fs.open(tostring("turtles/"..sTurtle..".txt"), "r")
+				local pos = h.readLine()
+				h.close()
+				mon.write(sTurtle.." was at "..pos)
+			else
+				mon.write(sTurtle.." is MIA.")
+			end
+		else
+			mon.write(sTurtle.." is at: ")
+			mon.write(xyz)
+			local h = fs.open(tostring("turtles/"..sTurtle..".txt"), "w")
+			h.writeLine(xyz)
+			h.close()
+		end
+		mon.setCursorPos(1,10)
+		mon.write("Press anywhere to return.")
+		parallel.waitForAny(
+		function()
+			sleep(25)
+		end,
+		function()
+			touch()
+		end
+		)
+		rednet.close()
+	end
+	local function tControl()
+		local function areYouThere()
+			local id, xyz
+			rednet.open("left")
+			rednet.broadcast("whereis", sTurtle)
+			parallel.waitForAny(
+			function()
+				id = rednet.receive(4.8)
+			end,
+			function()
+				shell.run("newLoad")
+			end
+			)
+			if not id then
+				return false
+			else
+				return true
+			end
+			rednet.close()
+			cls()
+		end
+		local function screen(success)
+			cls()
+			shell.run("monitor top draw direction.png")
+			local id, xyz
+			rednet.broadcast("whereis", sTurtle)
+			id, xyz = rednet.receive(5)
+			mon.setTextScale(1)
+			mon.setCursorPos(3,30)
+			mon.write(xyz)
+			if success=="null" then
+			elseif success then
+				mon.setCursorPos(3,31)
+				mon.setTextColor(colors.lime)
+				mon.write("Success")
+			else
+				mon.setCursorPos(3,31)
+				mon.setTextColor(colors.red)
+				mon.write("Failure")
+			end
+			mon.setTextColor(colors.white)
+		end
+		local function decode()
+			local x = xPos
+			local y = yPos
+			local xVar
+			local column
+			local row
+			local cmd = "null"
+			local isValid = true
+			local sTurtle = 0
+			
+			if y<=6 then
+				isValid = false
+			elseif x>=35 and y>=29 then
+				isValid = false
+				cmd = "exit"
+			elseif x<=5 or x>=45 then
+				isValid = false
+			end
+			if isValid then
+				--Determine Column
+				if x>=6 and x<=20 then
+					column = 1
+				elseif x>=21 and x<=30 then
+					column = 2
+				elseif x>=31 and x<=44 then
+					column = 3
+				end
+				--Determine Row
+				if y>=7 and y<=13 then
+					row = 1
+				elseif y>=14 and y<=21 then
+					row = 2
+				elseif y>=22 and y<=28 then
+					row = 3
+				end
+				--Determine command
+				if column==1 then
+					if row==1 then
+						cmd = "attack"
+					elseif row==2 then
+						cmd = "left"
+					elseif row==3 then
+						cmd = "up"
+					end
+				elseif column==2 then
+					if row==1 then
+						cmd = "forward"
+					elseif row==2 then
+						cmd = "place"
+					elseif row==3 then
+						cmd = "backward"
+					end
+				elseif column==3 then
+					if row==1 then
+						cmd = "dig"
+					elseif row==2 then
+						cmd = "right"
+					elseif row==3 then
+						cmd = "down"
+					end
+				end
+			end
+			if cmd == "exit" then
+				isValid = true
+			elseif not isValid then
+				cmd = "null"
+			end
+			local returnArray = {isValid, cmd}
+			return returnArray
+		end
+		if not areYouThere() then
+			mon.setTextScale(2)
+			mon.setCursorPos(1,5)
+			mon.write(sTurtle.." was not found")
+			mon.setCursorPos(1,10)
+			mon.write("Press anywhere to return.")
+			parallel.waitForAny(
+			function()
+				sleep(25)
+			end,
+			function()
+				touch()
+			end
+			)
+			return
+		end
+		screen("null")
+		while true do
+			touch()
+			local r = decode()
+			local cmd = r[2]
+			if r[1] then
+				if r[2]=="exit" then
+					break
+				end
+				rednet.open("left")
+				rednet.broadcast("direction "..cmd, sTurtle)
+				id, success = rednet.receive(5)
+				screen(success)
+			end
+		end
+		rednet.close()
+	end
+	local function tInfo()
+		local function getFuel()
+			local id, msg
+			rednet.open("left")
+			rednet.broadcast("getFuel", sTurtle)
+			id, msg = rednet.receive(4.8)
+			write(msg)
+		end
+		local function p(list)
+			for i=1,#list do
+				if list[i]=="rom" then
+				elseif type(list[i])=="table" then
+					local t = list[i]
+					term.setTextColor(colors.blue)
+					print(t[1])
+					term.setTextColor(colors.white)
+					p(t[2])
+				else
+					print(list[i])
+				end
+			end
+		end
+		local id, msg
+		rednet.open("left")
+		rednet.broadcast("getPrograms", sTurtle)
+		local var = parallel.waitForAny(
+			function()
+				id, msg = rednet.receive(4.9)
+			end,
+			function()
+				shell.run("newLoad")
+			end,
+			function()
+				sleep(4.8)
+			end
+		)
+		cls()
+		if var==1 then
+			shell.run("monitor top draw info.png")
+			term.redirect(mon)
+			term.setCursorPos(1,9)
+			term.setTextColor(colors.red)
+			term.write("Programs List")
+			term.setTextColor(colors.white)
+			local msg = textutils.unserialize(msg)
+			term.setCursorPos(1,11)
+			p(msg)
+		end
+		term.setCursorPos(30,9)
+		term.setTextColor(colors.red)
+		print("Fuel Level")
+		term.setCursorPos(30,11)
+		term.setTextColor(colors.white)
+		getFuel()
+		term.redirect(term.native())
+		mon.setCursorPos(1,30)
+		mon.write("Press anywhere to return.")
+		parallel.waitForAny(
+			function()
+				sleep(25)
+			end,
+			function()
+				touch()
+			end
+		)
+	end
+
+	if cmd==1 then
+		tCall()
+	elseif cmd==2 then
+		tRun()
+	elseif cmd==3 then
+		tPosition()
+	elseif cmd==4 then
+		tControl()
+	elseif cmd==5 then
+		tInfo()
+	end
+end
+local function whichTurtle()
+  local x = xPos
+  local y = yPos
+  local xVar
+  local column
+  local row
+  local cmd = -2
+  local isValid = true
+  local sTurtle = 0
+
+	if y<8 then
+		isValid = false
+	elseif y>=14 and y<=20 then
+		isValid = false
+	elseif x>=43 and y>=31 then
+		cmd = 11
+		isValid = false
+	elseif y>=27 then
+		isValid = false
+	end
+	if isValid then
+		cmd = 0
+	--Determine Column
+		if x>=1 and x<=9 then
+			column = 1
+		elseif x>=10 and x<=19 then
+			column = 2
+		elseif x>=20 and x<=29 then
+			column = 3
+		elseif x>=30 and x<=39 then
+			column = 4
+		elseif x>=40 and x<=49 then
+			column = 5
+		end
+	
+	--Determine Row
+		if y>=8 and y<=13 then
+			row = 1
+		elseif y>=21 and y<=26 then
+			row = 2
+		end
+	
+	--Use Row and Column to determine Turtle
+		if row==1 then
+			if column==1 then
+				sTurtle = 1
+			elseif column==2 then
+				sTurtle = 2
+			elseif column==3 then
+				sTurtle = 3
+			elseif column==4 then
+				sTurtle = 4
+			elseif column==5 then
+				sTurtle = 5
+			end
+		elseif row==2 then
+			if column==1 then
+				sTurtle = 6
+			elseif column==2 then
+				sTurtle = 7
+			elseif column==3 then
+				sTurtle = 8
+			elseif column==4 then
+				sTurtle = 9
+			elseif column==5 then
+				sTurtle = 10
+			end
+		end
+	
+	--Determine command given
+		if y==8 or y==21 then
+			cmd = 1
+		elseif y==9 or y==22 then
+			cmd = 2
+		elseif y==10 or y==23 then
+			cmd = 3
+		elseif y==11 or y==24 then
+			cmd = 4
+		elseif y==12 or y==25 then
+			cmd = 5
+		end
+	end
+	if cmd == 11 then
+		isValid = true
+	elseif not isValid then
+		cmd = -2
+		sTurtle = 0
+	end
+	local returnArray = {isValid, sTurtle, cmd}
+	return returnArray
+end
+
+while true do
+	mon.setCursorBlink(false)
+	cls()
+	repaint()
+	touch()
+	local tW = whichTurtle()
+	local isValid = tW[1]
+	local sTurtle = tW[2]
+	local cmd = tW[3]
+	if isValid then
+		if cmd==11 then
+			cls()
+			return
+		end
+		sTurtle = getName(sTurtle)
+		command(cmd, sTurtle)
+	end
+end

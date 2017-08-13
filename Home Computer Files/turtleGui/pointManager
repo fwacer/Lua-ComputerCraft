@@ -1,0 +1,20 @@
+local args = {...}
+local mon = peripheral.wrap('top')
+local x,y = mon.getCursorPos()
+local function setC()
+  mon.setCursorPos(x,y)
+end
+x = x+5
+if x < 41 then
+  x = x+5
+  setC()
+else
+  x = 1
+  y = y+13
+  setC()
+end
+if y>20 then
+  x = 1
+  y = 1
+  setC()
+end
