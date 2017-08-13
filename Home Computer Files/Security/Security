@@ -1,0 +1,463 @@
+local password = "1234"
+local userAmt = 0
+local users = {}
+local passwords = {}
+local permissions = {}
+local rPermissions = {} --r: readable
+local lockDownTimer = 30
+local uPerm = 0
+local rUPerm = "guest" -- r: readable
+local uUser = "guest"
+local uPassword = "guest"
+
+--guest, user, admin, master
+--0, 1, 2, 3
+
+--os.pullEvent() = os.pullEventRaw()
+
+local function clear()
+	term.clear()
+	term.setCursorPos(1,1)
+end
+local function cls()
+	local mon = peripheral.wrap('top')
+	mon.setCursorPos(1,1)
+	mon.clear()
+	mon.setTextScale(1)
+	mon.setTextColor(colors.white)
+	mon.setBackgroundColor(colors.black)
+end
+local function indent()
+	local x,y = term.getCursorPos()
+	term.setCursorPos(3, y)
+end
+local function color(x)
+	if x=="lime" then
+		term.setTextColor(colors.lime)
+	elseif x=="red" then
+		term.setTextColor(colors.red)
+	elseif x=="yellow" then
+		term.setTextColor(colors.yellow)
+	elseif x=="blue" then
+		term.setTextColor(colors.blue)
+	end
+end
+local function deny()
+	indent()
+	color("red")
+	print("Access Denied")
+	color("lime")
+	sleep(0.5)
+end
+local function permConvert(perm)
+	if perm=="guest" then return 0
+	elseif perm=="user" then return 1
+	elseif perm=="admin" then return 2
+	elseif perm=="master" then return 3
+	else return 0
+	end
+end
+local function getUserList()
+	if users[1] then end
+	local bank = fs.list("Security/userBank")
+	for i=1,#bank do
+		local h = fs.open(tostring("Security/userBank/"..bank[i]), "r")
+			userAmt = userAmt+1
+			users[userAmt] = h.readLine()
+			passwords[userAmt] = h.readLine()
+			local p = h.readLine()
+			permissions[userAmt] = permConvert(p)
+			rPermissions[userAmt] = p
+		h.close()
+	end
+end
+local function verify()
+	local cUser = 0
+	for i=1,#users do
+		if uUser==users[i] then
+			cUser = i
+		end
+	end
+	if passwords[cUser]==uPassword then
+		uPerm = permissions[cUser]
+		rUPerm = rPermissions[cUser]
+		return true
+	else
+		return false
+	end
+end
+local function cmdScreen()
+	term.setCursorPos(3,3)
+	print("Enter a command:")
+	term.setCursorPos(3,4)
+	while true do
+		write("> ")
+		local input = read()
+		if input=="list" then
+			userAmt = 0
+			getUserList()
+			if uPerm>1 then
+				color("blue")
+				print("User, Password, Permissions")
+				color("lime")
+				for i=1,#users do
+					write(users[i]..", ")
+					write(passwords[i]..", ")
+					print(rPermissions[i])
+				end
+			else
+				for i=1,#users do
+					print(users[i])
+				end
+			end
+		elseif input=="exit" then
+			break
+		elseif input=="mkuser" then
+			if uPerm>1 then
+				local newUser = {}
+				indent()
+				color("blue")
+				print("Create a new user")
+				indent()
+				write("User: ")
+				color("lime")
+				newUser[1] = read()
+				indent()
+				color("blue")
+				write("Password: ")
+				color("lime")
+				newUser[2] = read()
+				indent()
+				color("blue")
+				write("Permissions: ")
+				color("lime")
+					newUser[3] = read()
+					while newUser[3]~="master" and newUser[3]~="admin" and newUser[3]~="user" and newUser[3]~="guest" do
+						color("red")
+						print"Invalid type."
+						color("lime")
+						sleep(0.5)
+						print[[
+						Permission types:
+						"master" - Access to computer
+						"admin" - Access to user data
+						"user" - Access to menu
+						"guest" - Access to basics
+						]]
+						indent()
+						color("blue")
+						write("Permissions: ")
+						color("lime")
+						newUser[3] = read()
+					end
+				local h = fs.open("Security/userBank/"..newUser[1]..".txt", "w")
+				for i=1,3 do
+					h.writeLine(newUser[i])
+				end
+				h.close()
+			else
+				deny()
+			end
+		elseif input=="edit" then
+			if uPerm>1 then
+				indent()
+				color("blue")
+				print("User: ")
+				color("lime")
+				indent()
+				local name = read()
+				shell.run("edit Security/userBank/"..name..".txt")
+			else
+				deny()
+			end
+		elseif input=="getPerm" then
+			if uPerm>1 then
+				indent()
+				color("blue")
+				write("User: ")
+				color("lime")
+				local name = read()
+				local a = "a"
+				for i=1,#users do
+					if name==users[i] then
+						a = i
+						break
+					end
+				end
+				if a~="a" then
+					color("blue")
+					indent()
+					print(name.." has "..rPermissions[a].." permissions.")
+					color("lime")
+				else
+					color("red")
+					indent()
+					print"User not found."
+					color("lime")
+				end
+			else
+				color("blue")
+				indent()
+				print(uUser.." has "..rUPerm.." permissions.")
+				color("lime")
+			end
+		elseif input=="delete" then
+			if uPerm>1 then
+				indent()
+				color("blue")
+				print("User: ")
+				color("lime")
+				indent()
+				local name = read()
+				indent()
+				print("Are you sure you want to delete "..name.." forever? (Y/N)")
+				local veri = "H"
+				while veri ~= "Y" and veri ~= "N" do
+					indent()
+					veri = read()
+				end
+				if veri=="Y" then
+					shell.run("delete Security/userBank/"..name..".txt")
+					indent()
+					color("red")
+					print("Deleted.")
+					color("lime")
+				else
+					color("red")
+					print("Cancelled.")
+					color("lime")
+				end
+			else
+				deny()
+			end
+		elseif input=="turtles" then
+			if uPerm>0 then
+				clear()
+				print("Please regard the large screen")
+				sleep(1)
+				shell.run"cd turtleGui"
+				shell.run"run"
+				shell.run"cd /"
+				term.redirect(term.native())
+			else
+				deny()
+			end
+		elseif input=="help" then
+			color("blue")
+			print("Help List:")
+			color("lime")
+			if uPerm>1 then
+			term.setTextColor(colors.red)
+			print[[
+			edit - edit existing users
+			mkuser - create new users
+			delete - delete users]]
+			term.setTextColor(colors.lime)
+			end
+			if uPerm>0 then
+			term.setTextColor(colors.blue)
+			print[[
+			games - shows the list of games
+			turtles - shows turtle gui]]
+			term.setTextColor(colors.lime)
+			end
+			print[[
+			getPerm - returns user's permissions
+			list - lists all users
+			clear - clears the screen
+			help - shows this menu
+			exit - exit command prompt
+			]]
+		elseif input=="games" then
+			if uPerm>0 then
+				color("blue")
+				print"Games List:"
+				color("lime")
+			print[[
+			Redirection
+			Worm
+			Adventure
+			Falling
+			Paint
+			]]
+			else
+				deny()
+			end
+		
+		--Games
+		elseif input=="Paint" or input == "paint" then
+			if uPerm>0 then
+				print"Name your drawing: "
+				local n = read()
+				shell.run("/rom/programs/fun//advanced/paint "..n)
+			else
+				deny()
+			end
+		elseif input=="Redirection" or input == "redirection" then
+			if uPerm>0 then
+				shell.run"/rom/programs/fun/advanced/redirection"
+			else
+				deny()
+			end
+		elseif input=="Worm" or input == "worm" then
+			if uPerm>0 then
+				shell.run"/rom/programs/fun/worm"
+			else
+				deny()
+			end
+		elseif input=="Adventure" or input == "adventure" then
+			if uPerm>0 then
+				shell.run"/rom/programs/fun/adventure"
+			else
+				deny()
+			end
+		elseif input=="Falling" or input == "falling" then
+			if uPerm>0 then
+				shell.run"/rom/programs/pocket/falling"
+			else
+				deny()
+			end
+		elseif input=="clear" or input =="cls" then
+			clear()
+			term.setCursorPos(3,3)
+		else
+			print("Invalid command. Enter \'help\' for a list of commands.")
+		end
+		color("lime")
+		indent()
+	end
+end
+
+local function setDisplay()
+	clear()
+	cls()
+	term.setCursorPos(3,3)
+	color("lime")
+	write("user: ")
+	uUser = read()
+	indent()
+	write("pass: ")
+	uPassword = read("*")
+	if verify() then
+		indent()
+		print("Access Granted")
+		sleep(1)
+		return 1
+	elseif uUser=="cmd" then
+		clear()
+		uUser = "unknown"
+		uPerm = 0
+		rUPerm = "guest"
+		cmdScreen()
+		return 3
+	else
+		indent()
+		deny()
+		return 2
+	end
+end
+local function lockDown()
+	local timeLeft = lockDownTimer
+	local h = fs.open("Security/isLocked.txt", "w")
+		h.write(tostring(lockDownTimer))
+	h.close()
+	while timeLeft>0 do
+		clear()
+		color("red")
+		print("THIS MACHINE IS LOCKED DOWN")
+		term.setCursorPos(1,2)
+		print(timeLeft)
+		sleep(1)
+		timeLeft = timeLeft-1
+	end
+	color("lime")
+	local h = fs.open("Security/isLocked.txt", "w")
+		h.write("0")
+	h.close()
+end
+local function logout()
+	color("blue")
+	indent()
+	print("Would you like to log out? (Y/N)")
+	color("lime")
+	local veri = "H"
+	while veri~="Y" and veri~="N" do
+		indent()
+		veri = read()
+	end
+	if veri=="Y" then
+		return true
+	else
+		return false
+	end
+end
+local function welcome()
+	local log = false
+	--User has passed if reached here
+	clear()
+	print("Welcome, "..uUser..".")
+	print("You have "..rUPerm.." permissions.")
+	if uPerm==2 then --admin
+		while not log do
+			cmdScreen()
+			log = logout()
+		end
+	elseif uPerm==3 then --master
+		while not log do
+			cmdScreen()
+			log = logout()
+		end
+	elseif uPerm==1 then --user
+		while not log do
+			cmdScreen()
+			log = logout()
+		end
+	else
+		while not log do
+			cmdScreen()
+			log = logout()
+		end
+	end
+end
+local function interface()
+	userAmt = 0
+	getUserList()
+	local h = fs.open("Security/isLocked.txt", "r")
+	local lockAmt = tonumber(h.readLine())
+	h.close()
+	if lockAmt>0 then
+		lockDownTimer = lockAmt
+		lockDown()
+	end
+	local passed = false
+	while not passed do
+		for i=1,5 do
+			passed = setDisplay()
+			if passed==1 then
+				break
+			elseif passed==3 then
+				i = i-1
+			end
+		end
+		if passed==2 then
+			lockDown()
+			lockDownTimer = lockDownTimer+30
+		else
+			welcome()
+		end
+	end
+end
+local function cmd()
+	while true do
+		local event, key = os.pullEvent("key")
+		
+	end
+end
+
+
+--program Start
+while true do
+	parallel.waitForAny(interface,cmd)
+end
+local info = {uUser, uPerm}
+return info

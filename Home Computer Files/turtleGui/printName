@@ -1,0 +1,20 @@
+local t = turtle
+local mon = peripheral.wrap('top')
+local oldX, oldY = mon.getCursorPos()
+if t=="Purple" or t=="Orange" then
+	mon.write(" "..t)
+else
+	mon.write("  "..t)
+end
+mon.setCursorPos(oldX, (oldY+1))
+mon.write("Call")
+mon.setCursorPos(oldX, (oldY+2))
+mon.write("Run")
+mon.setCursorPos(oldX, (oldY+3))
+mon.write("Position")
+mon.setCursorPos(oldX, (oldY+4))
+mon.write("Control")
+mon.setCursorPos(oldX, (oldY+5))
+mon.write("Info")
+
+mon.setCursorPos(oldX, (oldY))

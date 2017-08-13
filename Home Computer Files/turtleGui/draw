@@ -1,0 +1,9 @@
+local tArgs = { ... }
+local mon = peripheral.wrap('top')
+local img = paintutils.loadImage(tostring("turtleGui/"..tArgs[1]))
+term.setBackgroundColor(colors.black)
+term.clear()
+local x,y = mon.getCursorPos()
+paintutils.drawImage(img, x, y)
+term.setBackgroundColor(colors.black)
+

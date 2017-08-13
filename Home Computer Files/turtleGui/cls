@@ -1,0 +1,6 @@
+local mon = peripheral.wrap('top')
+mon.setCursorPos(1,1)
+mon.setTextScale(1)
+mon.setTextColor(colors.white)
+mon.setBackgroundColor(colors.black)
+mon.clear()
