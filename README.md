@@ -1,5 +1,5 @@
 # Lua-ComputerCraft-turtleControl
-This code is for a GUI-based remote turtle control system in Lua using the ComputerCraft mod for Minecraft
+This GUI for ComputerCraft Turtles (A mod for Minecraft) was created by myself, Fwacer.
 If you use this and show others, please credit it to me.
 
 Instructions:
